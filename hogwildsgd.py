@@ -6,6 +6,8 @@ from sklearn.externals.joblib import Parallel, delayed
 
 from shared import SharedWeights, mse_gradient_step
 from generators import DataGenerator
+import time
+import pdb
 
 class HogWildRegressor(SGDRegressor):
     """
@@ -39,7 +41,7 @@ class HogWildRegressor(SGDRegressor):
     }
 
     def __init__(self, 
-                 n_jobs=-1, 
+                 n_jobs=2, 
                  n_epochs = 5,
                  batch_size = 1, 
                  chunk_size = 32,
@@ -58,6 +60,7 @@ class HogWildRegressor(SGDRegressor):
         self.n_epochs = n_epochs
         self.chunk_size = chunk_size
         self.shared_weights = SharedWeights
+        self.predictions = []
 
         if not generator:
             self.generator = DataGenerator(shuffle= self.shuffle,
@@ -65,6 +68,7 @@ class HogWildRegressor(SGDRegressor):
                                            verbose = self.verbose)
 
     def _fit(self, X, y, **kwargs):
+        #pdb.set_trace()
         # Check y
         np.random.seed(self.random_state)
         y = y.reshape((len(y),1)) # proper shape for numpy descent
@@ -75,24 +79,37 @@ class HogWildRegressor(SGDRegressor):
             for epoch in range(self.n_epochs):
                 if self.verbose:
                     print('Epoch: %s' % epoch)
-                Parallel(n_jobs= self.n_jobs, verbose=self.verbose)\
-                            (delayed(self.train_epoch)(e) for e in self.generator(X,y))
+                Parallel(n_jobs= self.n_jobs, verbose=self.verbose)(delayed(self.train_epoch)(e, sw) for e in self.generator(X,y))
+                #inx = 0
+                #for e in self.generator(X,y):
+                    #inx=inx+1
+                    #pdb.set_trace()    
+                    #print('inx is ', inx)
+                #    self.train_epoch(e)
 
+        #self.coef_ = sw.w.reshape((10,1)).T
+        #elf.fitted = True
+        #self.intercept_ = 0.
+        #self.t_ = 0.
+
+        return self
+
+    def train_epoch(self, inputs, sw):
+        X,y = inputs
+        #pdb.set_trace()
+        self._train_epoch(X,y)
         self.coef_ = sw.w.reshape((10,1)).T
         self.fitted = True
         self.intercept_ = 0.
         self.t_ = 0.
-
-        return self
-
-    def train_epoch(self, inputs):
-        X,y = inputs
-        self._train_epoch(X,y)
+        self.predictions.append(self.predict(X))
 
     def _train_epoch(self, X, y):
         batch_size = self.batch_size
         for k in range(int(X.shape[0]/float(batch_size))):
-            Xx = X[k*batch_size : (k+1)*batch_size,:]
+            #pdb.set_trace()
+            Xx = X[k*batch_size : (k+1)*batch_size]
+            #Xx = X[k*batch_size : (k+1)*batch_size,:]
             yy = y[k*batch_size : (k+1)*batch_size]
             self.gradient(Xx,yy,self.learning_rate)
 

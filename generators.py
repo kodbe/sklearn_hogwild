@@ -1,4 +1,5 @@
 import numpy as np
+import pdb
 
 
 class DataGenerator:
@@ -12,12 +13,14 @@ class DataGenerator:
         self.verbose = verbose
 
     def __call__(self, X, y):
+#        pdb.set_trace()
         if self.shuffle:
             indices = np.random.choice(len(X), replace=False, size=len(X))
             X = X[indices]
             y = y[indices]
 
         batch_size = int(X.shape[0]/float(self.chunk_size))
+        print('batch_size ', batch_size)
         for k in range(batch_size):
             Xx = X[k*self.chunk_size : (k+1)*self.chunk_size]
             yy = y[k*self.chunk_size : (k+1)*self.chunk_size]
